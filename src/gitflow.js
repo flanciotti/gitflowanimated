@@ -4,6 +4,7 @@ import styled from "styled-components";
 import {Button, ButtonIcon, fallDownAnimation, fadeIn} from "./global-styles";
 import GoeyFilter from "./goey-filter";
 import Connections from "./connections";
+import branch_names from "./config";
 
 const GitFlowElm = styled.div`
     margin: 0 auto;
@@ -189,10 +190,9 @@ class GitFlow extends Component {
             <BranchHeader>
                 <BranchName>{branch.name}</BranchName>
                 <BranchActions
-                    count={3}
+                    count={2}
                 >
-                    <ButtonIcon onClick={this.props.onNewRelease}>R</ButtonIcon>
-                    {this.renderCommitButton(branch)}
+                    <ButtonIcon onClick={this.props.onNewRC}>R</ButtonIcon>
                     <ButtonIcon onClick={this.props.onNewFeature}>F</ButtonIcon>
                 </BranchActions>
             </BranchHeader>
@@ -225,7 +225,61 @@ class GitFlow extends Component {
         )
     };
 
-    renderReleaseBranchHeader = (branch) => {
+    renderHotFixBranchHeader = (branch) => {
+        let actionsElm = null;
+        if (branch.merged) {
+            actionsElm = this.renderDeleteButton(branch);
+        } else {
+            actionsElm = (
+                <BranchActions
+                    count={2}
+                >
+                    <ButtonIcon
+                        onClick={this.props.onRCMerge.bind(this, branch.id, undefined)}
+                    >M</ButtonIcon>
+                    {this.renderCommitButton(branch)}
+                </BranchActions>
+            );
+        }
+        return (
+            <BranchHeader
+                key={branch.id}
+            >
+                <BranchName>{branch.name}</BranchName>
+                {actionsElm}
+            </BranchHeader>
+        )
+    };
+
+
+    renderQAFixBranchHeader = (branch) => {
+        let actionsElm = null;
+        if (branch.merged) {
+            actionsElm = this.renderDeleteButton(branch);
+        } else {
+            actionsElm = (
+                <BranchActions
+                    count={2}
+                >
+                    <ButtonIcon
+                        onClick={this.props.onQAFixMerge.bind(this, branch.id, undefined)}
+                    >M</ButtonIcon>
+                    {this.renderCommitButton(branch)}
+                </BranchActions>
+            );
+        }
+        return (
+            <BranchHeader
+                key={branch.id}
+            >
+                <BranchName>{branch.name}</BranchName>
+                {actionsElm}
+            </BranchHeader>
+        )
+    };
+
+
+    renderRCBranchHeader = (branch) => {
         let actionsElm = null;
         if (branch.merged) {
             actionsElm = this.renderDeleteButton(branch);
@@ -233,9 +287,11 @@ class GitFlow extends Component {
             actionsElm = (<BranchActions
                     count={2}
                 >
-                    {this.renderCommitButton(branch)}
                     <ButtonIcon
-                        onClick={this.props.onRelease.bind(this, branch.id, undefined)}
+                        onClick={this.props.onNewQAFix.bind(this, branch.id, undefined)}
+                    >Q</ButtonIcon>
+                    <ButtonIcon
+                        onClick={this.props.onRCMerge.bind(this, branch.id, undefined)}
                     >M</ButtonIcon>
                 </BranchActions>
             );
@@ -250,7 +306,7 @@ class GitFlow extends Component {
         )
     };
 
-    renderMasterBranchHeader = (branch) => {
+    renderReleaseBranchHeader = (branch) => {
         return (
             <BranchHeader>
                 <BranchName>{branch.name}</BranchName>
@@ -265,11 +321,12 @@ class GitFlow extends Component {
 
     renderBranchHeaders = (param) => {
         const {
-            masterBranch,
+            releaseBranch,
             developBranch,
-            releaseBranches,
+            rcBranches,
             featureBranches,
             hotFixBranches,
+            qaFixBranches,
             noOfBranches
         } = param;
         return (
@@ -277,13 +334,16 @@ class GitFlow extends Component {
                 count={noOfBranches}
             >
                 {
-                    this.renderMasterBranchHeader(masterBranch)
+                    this.renderReleaseBranchHeader(releaseBranch)
                 }
                 {
-                    hotFixBranches.map(b => this.renderReleaseBranchHeader(b))
+                    hotFixBranches.map(b => this.renderHotFixBranchHeader(b))
                 }
                 {
-                    releaseBranches.map(b => this.renderReleaseBranchHeader(b))
+                    qaFixBranches.map(b => this.renderQAFixBranchHeader(b))
+                }
+                {
+                    rcBranches.map(b => this.renderRCBranchHeader(b))
                 }
                 {
                     this.renderDevelopBranchHeader(developBranch)
@@ -297,14 +357,17 @@ class GitFlow extends Component {
 
     renderBranchCommits = (param) => {
         const {
-            masterBranch,
+            releaseBranch,
             developBranch,
-            releaseBranches,
+            rcBranches,
             featureBranches,
             hotFixBranches,
+            qaFixBranches,
             noOfBranches
         } = param;
-        let branches = [masterBranch, ...hotFixBranches, ...releaseBranches, developBranch, ...featureBranches];
+
+        let branches = [releaseBranch, ...hotFixBranches, ...qaFixBranches, ...rcBranches, developBranch, ...featureBranches];
+        
         return (
             <GridColumn
                 count={noOfBranches}
@@ -322,7 +385,7 @@ class GitFlow extends Component {
     renderBranchCommit = (branch, branchIndex) => {
         const {commits} = this.props.project;
         const branchCommits = commits.filter(c => c.branch === branch.id);
-        let isMasterBranch = branch.name === 'master';
+        let isReleaseBranch = branch.name === branch_names.RELEASE;
         return (
             <Commits
                 className={branch.merged ? 'merged' : ''}
@@ -339,7 +402,7 @@ class GitFlow extends Component {
                             color={branch.color}
                             top={commit.gridIndex - 1}
                         >
-                            {isMasterBranch ? <Tag>{'v' + idx}</Tag> : null}
+                            {isReleaseBranch ? <Tag>{'v' + idx}</Tag> : null}
                         </Commit>
                     })
                 }
@@ -351,27 +414,24 @@ class GitFlow extends Component {
 
         const {project} = this.props;
         const {branches} = project;
-        const masterBranch = branches.find(b => b.name === 'master');
+        const releaseBranch = branches.find(b => b.name === branch_names.RELEASE);
         const hotFixBranches = branches.filter(b => b.hotFixBranch);
-        const developBranch = branches.find(b => b.name === 'develop');
-        const releaseBranches = branches.filter(b => b.releaseBranch);
+        const developBranch = branches.find(b => b.name === branch_names.DEVEL);
+        const rcBranches = branches.filter(b => b.rcBranch);
         const featureBranches = branches.filter(b => b.featureBranch);
+        const qaFixBranches = branches.filter(b => b.qaFixBranch);
         const noOfBranches = branches.length;
         const param = {
-            masterBranch,
+            releaseBranch,
             hotFixBranches,
             developBranch,
             featureBranches,
-            releaseBranches,
+            rcBranches,
+            qaFixBranches,
             noOfBranches
         };
         return (
             <GitFlowElm>
-                <GlobalActions>
-                    <Button onClick={this.props.onNewHotFix}>New Hot Fix</Button>
-                    <Button onClick={this.props.onNewRelease}>New Release</Button>
-                    <Button onClick={this.props.onNewFeature}>New Feature</Button>
-                </GlobalActions>
                 <ProjectElm>
                     {this.renderBranchHeaders(param)}
                     {this.renderBranchCommits(param)}

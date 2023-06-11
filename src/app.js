@@ -2,19 +2,21 @@ import React, {Component} from 'react';
 import styled from "styled-components";
 import GitFlow from "./gitflow";
 import shortid from "shortid";
+import branch_names from './config';
 
-const DEVELOP = 'develop';
-const MASTER = 'master';
+const DEVELOP = branch_names.DEVEL;
+const MASTER = branch_names.RELEASE;
 
-const masterID = shortid.generate();
+const releaseID = shortid.generate();
 const developID = shortid.generate();
+const rcID = shortid.generate();
 
 const seedData = () => {
 
     const commits = [
         {
             id: shortid.generate(),
-            branch: masterID,
+            branch: releaseID,
             gridIndex: 1,
             parents: null,
         },
@@ -29,7 +31,7 @@ const seedData = () => {
         branches: [
             {
                 name: MASTER,
-                id: masterID,
+                id: releaseID,
                 canCommit: false,
                 color: '#E040FB',
             },
@@ -73,7 +75,7 @@ class App extends Component {
     handleNewFeature = () => {
         let {branches, commits} = this.state.project;
         let featureBranches = branches.filter(b => b.featureBranch);
-        let featureBranchName = 'feature ' + ((featureBranches || []).length + 1);
+        let featureBranchName = branch_names.FEATURE + ((featureBranches || []).length + 1);
         let developCommits = commits.filter(c => c.branch === developID);
         const lastDevelopCommit = developCommits[developCommits.length - 1];
         let featureOffset = lastDevelopCommit.gridIndex + 1;
@@ -100,13 +102,44 @@ class App extends Component {
         });
     };
 
+    handleNewQAFix = () => {
+        let {branches, commits} = this.state.project;
+        let rcBranches = branches.filter(b => b.rcBranch);
+        let newBranchName = branch_names.QAFIX + ((rcBranches || []).length + 1);
+        let lastCommits = commits.filter(c => c.branch === rcID);
+        const lastCommit = lastCommits[lastCommits.length - 1];
+        let commitOffset = lastCommit.gridIndex + 1;
+        let newBranch = {
+            id: shortid.generate(),
+            name: newBranchName,
+            qaFixBranch: true,
+            canCommit: true,
+            color: '#64B5F6'
+        };
+        let newCommit = {
+            id: shortid.generate(),
+            branch: newBranch.id,
+            gridIndex: commitOffset,
+            parents: [lastCommit.id]
+        };
+        commits.push(newCommit);
+        branches.push(newBranch);
+        this.setState({
+            project: {
+                branches,
+                commits
+            }
+        });
+    };
+
+
     handleNewHotFix = () => {
         let {branches, commits} = this.state.project;
         let hotFixBranches = branches.filter(b => b.hotFixBranch);
-        let hotFixBranchName = 'hot ' + ((hotFixBranches || []).length + 1);
-        let masterCommits = commits.filter(c => c.branch === masterID);
-        const lastMasterCommit = masterCommits[masterCommits.length - 1];
-        let hotFixOffset = lastMasterCommit.gridIndex + 1;
+        let hotFixBranchName = branch_names.HOTFIX + ((hotFixBranches || []).length + 1);
+        let releaseCommits = commits.filter(c => c.branch === releaseID);
+        const lastReleaseCommit = releaseCommits[releaseCommits.length - 1];
+        let hotFixOffset = lastReleaseCommit.gridIndex + 1;
 
         let newBranch = {
             id: shortid.generate(),
@@ -119,7 +152,7 @@ class App extends Component {
             id: shortid.generate(),
             branch: newBranch.id,
             gridIndex: hotFixOffset,
-            parents: [lastMasterCommit.id]
+            parents: [lastReleaseCommit.id]
         };
         commits.push(newCommit);
         branches.push(newBranch);
@@ -131,24 +164,24 @@ class App extends Component {
         });
     };
 
-    handleNewRelease = () => {
+    handleNewRC = () => {
         let {branches, commits} = this.state.project;
-        let releaseBranches = branches.filter(b => b.releaseBranch);
-        let releaseBranchName = 'release ' + ((releaseBranches || []).length + 1);
+        let rcBranches = branches.filter(b => b.rcBranch);
+        let rcBranchName = branch_names.RC + ((rcBranches || []).length + 1);
         let developCommits = commits.filter(c => c.branch === developID);
         const lastDevelopCommit = developCommits[developCommits.length - 1];
-        let releaseOffset = lastDevelopCommit.gridIndex + 1;
+        let rcOffset = lastDevelopCommit.gridIndex + 1;
         let newBranch = {
-            id: shortid.generate(),
-            name: releaseBranchName,
-            releaseBranch: true,
+            id: rcID,
+            name: rcBranchName,
+            rcBranch: true,
             canCommit: true,
             color: '#B2FF59'
         };
         let newCommit = {
             id: shortid.generate(),
             branch: newBranch.id,
-            gridIndex: releaseOffset,
+            gridIndex: rcOffset,
             parents: [lastDevelopCommit.id]
         };
         commits.push(newCommit);
@@ -161,22 +194,22 @@ class App extends Component {
         });
     };
 
-    handleRelease = (sourceBranchID) => {
+    handleRCMerge = (sourceBranchID) => {
         let {branches, commits} = this.state.project;
         const sourceBranch = branches.find(b => b.id === sourceBranchID);
         const sourceCommits = commits.filter(c => c.branch === sourceBranchID);
 
-        const masterCommits = commits.filter(c => c.branch === masterID);
+        const releaseCommits = commits.filter(c => c.branch === releaseID);
         const developCommits = commits.filter(c => c.branch === developID);
         const lastSourceCommit = sourceCommits[sourceCommits.length - 1];
-        const lastMasterCommit = masterCommits[masterCommits.length - 1];
+        const lastReleaseCommit = releaseCommits[releaseCommits.length - 1];
         const lastDevelopCommit = developCommits[developCommits.length - 1];
 
-        const masterMergeCommit = {
+        const releaseMergeCommit = {
             id: shortid.generate(),
-            branch: masterID,
-            gridIndex: Math.max(lastSourceCommit.gridIndex, lastMasterCommit.gridIndex) + 1,
-            parents: [lastMasterCommit.id, lastSourceCommit.id]
+            branch: releaseID,
+            gridIndex: Math.max(lastSourceCommit.gridIndex, lastReleaseCommit.gridIndex) + 1,
+            parents: [lastReleaseCommit.id, lastSourceCommit.id]
         };
 
         const developMergeCommit = {
@@ -186,7 +219,7 @@ class App extends Component {
             parents: [lastDevelopCommit.id, lastSourceCommit.id]
         };
 
-        commits.push(masterMergeCommit, developMergeCommit);
+        commits.push(releaseMergeCommit, developMergeCommit);
         sourceBranch.merged = true;
 
         this.setState({
@@ -197,6 +230,44 @@ class App extends Component {
         });
 
     };
+
+    handleQAFixMerge = (sourceBranchID) => {
+        let {branches, commits} = this.state.project;
+        const sourceBranch = branches.find(b => b.id === sourceBranchID);
+        const sourceCommits = commits.filter(c => c.branch === sourceBranchID);
+
+        const releaseCommits = commits.filter(c => c.branch === releaseID);
+        const developCommits = commits.filter(c => c.branch === rcID);
+        const lastSourceCommit = sourceCommits[sourceCommits.length - 1];
+        const lastReleaseCommit = releaseCommits[releaseCommits.length - 1];
+        const lastDevelopCommit = developCommits[developCommits.length - 1];
+
+        const releaseMergeCommit = {
+            id: shortid.generate(),
+            branch: releaseID,
+            gridIndex: Math.max(lastSourceCommit.gridIndex, lastReleaseCommit.gridIndex) + 1,
+            parents: [lastReleaseCommit.id, lastSourceCommit.id]
+        };
+
+        const rcMergeCommit = {
+            id: shortid.generate(),
+            branch: rcID,
+            gridIndex: Math.max(lastSourceCommit.gridIndex, lastDevelopCommit.gridIndex) + 1,
+            parents: [lastDevelopCommit.id, lastSourceCommit.id]
+        };
+
+        commits.push(rcMergeCommit);
+        sourceBranch.merged = true;
+
+        this.setState({
+            project: {
+                branches,
+                commits
+            }
+        });
+
+    };
+
 
     handleMerge = (sourceBranchID, targetBranchID = developID) => {
         let {branches, commits} = this.state.project;
@@ -254,10 +325,12 @@ class App extends Component {
                 <GitFlow
                     project={this.state.project}
                     onMerge={this.handleMerge}
-                    onRelease={this.handleRelease}
+                    onRCMerge={this.handleRCMerge}
                     onCommit={this.handleCommit}
                     onNewFeature={this.handleNewFeature}
-                    onNewRelease={this.handleNewRelease}
+                    onNewRC={this.handleNewRC}
+                    onNewQAFix={this.handleNewQAFix}
+                    onQAFixMerge={this.handleQAFixMerge}
                     onDeleteBranch={this.handleDeleteBranch}
                     onNewHotFix={this.handleNewHotFix}
                 />
