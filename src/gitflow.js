@@ -190,9 +190,10 @@ class GitFlow extends Component {
             <BranchHeader>
                 <BranchName>{branch.name}</BranchName>
                 <BranchActions
-                    count={2}
+                    count={3}
                 >
                     <ButtonIcon onClick={this.props.onNewRC}>R</ButtonIcon>
+                    <ButtonIcon onClick={this.props.onNewBugFix}>B</ButtonIcon>
                     <ButtonIcon onClick={this.props.onNewFeature}>F</ButtonIcon>
                 </BranchActions>
             </BranchHeader>
@@ -200,6 +201,32 @@ class GitFlow extends Component {
     };
 
     renderFeatureBranchHeader = (branch) => {
+        let actionsElm = null;
+        if (branch.merged) {
+            actionsElm = this.renderDeleteButton(branch);
+        } else {
+            actionsElm = (
+                <BranchActions
+                    count={2}
+                >
+                    <ButtonIcon
+                        onClick={this.props.onMerge.bind(this, branch.id, undefined)}
+                    >M</ButtonIcon>
+                    {this.renderCommitButton(branch)}
+                </BranchActions>
+            );
+        }
+        return (
+            <BranchHeader
+                key={branch.id}
+            >
+                <BranchName>{branch.name}</BranchName>
+                {actionsElm}
+            </BranchHeader>
+        )
+    };
+
+    renderBugFixBranchHeader = (branch) => {
         let actionsElm = null;
         if (branch.merged) {
             actionsElm = this.renderDeleteButton(branch);
@@ -327,6 +354,7 @@ class GitFlow extends Component {
             featureBranches,
             hotFixBranches,
             qaFixBranches,
+            bugFixBranches,
             noOfBranches
         } = param;
         return (
@@ -351,6 +379,9 @@ class GitFlow extends Component {
                 {
                     featureBranches.map(b => this.renderFeatureBranchHeader(b))
                 }
+                {
+                    bugFixBranches.map(b => this.renderBugFixBranchHeader(b))
+                }
             </GridColumn>
         )
     };
@@ -363,10 +394,11 @@ class GitFlow extends Component {
             featureBranches,
             hotFixBranches,
             qaFixBranches,
+            bugFixBranches,
             noOfBranches
         } = param;
 
-        let branches = [releaseBranch, ...hotFixBranches, ...qaFixBranches, ...rcBranches, developBranch, ...featureBranches];
+        let branches = [releaseBranch, ...hotFixBranches, ...qaFixBranches, ...rcBranches, developBranch, ...featureBranches, ...bugFixBranches];
         
         return (
             <GridColumn
@@ -420,6 +452,8 @@ class GitFlow extends Component {
         const rcBranches = branches.filter(b => b.rcBranch);
         const featureBranches = branches.filter(b => b.featureBranch);
         const qaFixBranches = branches.filter(b => b.qaFixBranch);
+        const bugFixBranches = branches.filter(b => b.bugFixBranch);
+        
         const noOfBranches = branches.length;
         const param = {
             releaseBranch,
@@ -428,6 +462,7 @@ class GitFlow extends Component {
             featureBranches,
             rcBranches,
             qaFixBranches,
+            bugFixBranches,
             noOfBranches
         };
         return (

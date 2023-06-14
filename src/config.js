@@ -4,7 +4,8 @@ const branch_names = {
     QAFIX: 'qafix ',
     HOTFIX: 'hotfix ',
     RELEASE: 'release ',
-    FEATURE: 'feature '
+    FEATURE: 'feature ',
+    BUGFIX: 'bugfix'
 };
 
 export default branch_names;

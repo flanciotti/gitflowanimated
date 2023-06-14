@@ -102,6 +102,37 @@ class App extends Component {
         });
     };
 
+    handleNewBugFix = () => {
+        let {branches, commits} = this.state.project;
+        let bugfixBranches = branches.filter(b => b.bugFixBranch);
+        let bugfixBranchName = branch_names.BUGFIX + ((bugfixBranches || []).length + 1);
+        let developCommits = commits.filter(c => c.branch === developID);
+        const lastDevelopCommit = developCommits[developCommits.length - 1];
+        let bugfixOffset = lastDevelopCommit.gridIndex + 1;
+        let newBranch = {
+            id: shortid.generate(),
+            name: bugfixBranchName,
+            bugFixBranch: true,
+            canCommit: true,
+            color: '#64B5F6'
+        };
+        let newCommit = {
+            id: shortid.generate(),
+            branch: newBranch.id,
+            gridIndex: bugfixOffset,
+            parents: [lastDevelopCommit.id]
+        };
+        commits.push(newCommit);
+        branches.push(newBranch);
+        this.setState({
+            project: {
+                branches,
+                commits
+            }
+        });
+    };
+
+
     handleNewQAFix = () => {
         let {branches, commits} = this.state.project;
         let rcBranches = branches.filter(b => b.rcBranch);
@@ -333,6 +364,7 @@ class App extends Component {
                     onQAFixMerge={this.handleQAFixMerge}
                     onDeleteBranch={this.handleDeleteBranch}
                     onNewHotFix={this.handleNewHotFix}
+                    onNewBugFix={this.handleNewBugFix}
                 />
             </AppElm>
         );
